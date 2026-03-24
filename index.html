@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Football Quiz</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: auto; padding: 20px; }
+    input { width: 100%; padding: 8px; }
+    ul { list-style: none; padding: 0; border: 1px solid #ccc; }
+    li { padding: 5px; cursor: pointer; }
+    li:hover { background: #eee; }
+    button { margin-top: 10px; padding: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>⚽ Who scored here?</h2>
+
+<p><b>Team:</b> <span id="team"></span></p>
+<p><b>Stadium:</b> <span id="stadium"></span></p>
+
+<input type="text" id="playerInput" placeholder="Type player name...">
+<ul id="suggestions"></ul>
+
+
+
+<button onclick="submitAnswer()">Submit</button>
+<button onclick="newQuestion()">New Question</button>
+
+<p id="result"></p>
+
+<script>
+let data = [];
+let questions = [];
+let players = [];
+let index = {};
+let currentQuestion = null;
+
+// Load JSON
+
+  fetch("Total_goals_all Seasons.json")
+  .then(res => res.json())
+  .then(json => {
+    // Filter to only include away goals
+    data = json.filter(d => d.team === "away"); // replace "scorer_location" with your actual field name
+    setupGame();
+  });
+
+function setupGame() {
+  // Build player list
+  players = [...new Set(data.map(d => d.scorer))];
+
+  const seen = new Set();
+
+  data.forEach(row => {
+    const key = row.away_team + "|" + row.stadium;
+
+    // Build valid questions
+    if (!seen.has(key)) {
+      seen.add(key);
+      questions.push({
+        team: row.away_team,
+        stadium: row.stadium,
+        key
+      });
+    }
+
+    // Build fast lookup index
+    if (!index[key]) index[key] = new Set();
+    index[key].add(row.scorer);
+  });
+
+  newQuestion();
+}
+
+function newQuestion() {
+  currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+
+  document.getElementById("team").textContent = currentQuestion.team;
+  document.getElementById("stadium").textContent = currentQuestion.stadium;
+  document.getElementById("result").textContent = "";
+  document.getElementById("playerInput").value = "";
+  document.getElementById("suggestions").innerHTML = "";
+}
+
+function submitAnswer() {
+  const player = document.getElementById("playerInput").value.trim();
+  const key = currentQuestion.key;
+
+  const correct = index[key] && index[key].has(player);
+
+  document.getElementById("result").textContent =
+    correct ? "✅ Correct!" : "❌ Wrong!";
+}
+
+// Autocomplete
+const input = document.getElementById("playerInput");
+const suggestions = document.getElementById("suggestions");
+
+input.addEventListener("input", () => {
+  const query = input.value.toLowerCase();
+
+  const matches = players
+    .filter(p => p.toLowerCase().includes(query))
+    .slice(0, 10);
+
+  suggestions.innerHTML = "";
+
+  matches.forEach(name => {
+    const li = document.createElement("li");
+    li.textContent = name;
+    li.onclick = () => {
+      input.value = name;
+      suggestions.innerHTML = "";
+    };
+    suggestions.appendChild(li);
+  });
+});
+</script>
+
+</body>
+</html>
