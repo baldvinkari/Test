@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Football Quiz</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0f1923;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+      margin: 0;
+    }
+
+    .card {
+      background: #1a2535;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0 0 4px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .header p {
+      color: #7a8fa6;
+      font-size: 0.85rem;
+      margin: 0;
+    }
+
+    /* Mode toggle */
+    .mode-toggle {
+      display: flex;
+      background: #0f1923;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+      gap: 4px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 9px 12px;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      background: transparent;
+      color: #7a8fa6;
+    }
+
+    .mode-btn.active {
+      background: #00b04f;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,176,79,0.35);
+    }
+
+    .mode-btn:not(.active):hover {
+      color: #c0cfd8;
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* Question card */
+    .question-block {
+      background: #0f1923;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 22px;
+    }
+
+    .question-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .question-row:last-child { margin-bottom: 0; }
+
+    .q-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #7a8fa6;
+      font-weight: 600;
+    }
+
+    .q-value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: right;
+    }
+
+    .hint-text {
+      font-size: 0.8rem;
+      color: #7a8fa6;
+      margin-bottom: 18px;
+    }
+
+    /* Input */
+    .input-wrapper {
+      position: relative;
+      margin-bottom: 4px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 11px 14px;
+      background: #0f1923;
+      border: 1.5px solid #2a3a50;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #00b04f;
+    }
+
+    input[type="text"]::placeholder { color: #4a5f72; }
+
+    ul#suggestions {
+      list-style: none;
+      padding: 4px 0;
+      margin: 0;
+      background: #1e2d3d;
+      border: 1.5px solid #2a3a50;
+      border-radius: 8px;
+      position: absolute;
+      width: 100%;
+      z-index: 10;
+      top: calc(100% + 4px);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    ul#suggestions:empty { display: none; }
+
+    ul#suggestions li {
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #c0d0dc;
+    }
+
+    ul#suggestions li:hover {
+      background: #00b04f22;
+      color: #ffffff;
+    }
+
+    /* Season select */
+    select {
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #0f1923;
+      border: 1.5px solid #2a3a50;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8fa6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    select:focus { border-color: #00b04f; }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #00b04f;
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #00c957; }
+
+    .btn-secondary {
+      background: transparent;
+      color: #7a8fa6;
+      border: 1.5px solid #2a3a50;
+    }
+
+    .btn-secondary:hover {
+      border-color: #7a8fa6;
+      color: #c0d0dc;
+    }
+
+    /* Result */
+    #result {
+      margin-top: 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      min-height: 1.4em;
+      text-align: center;
+    }
+
+    #result.correct  { color: #00c957; }
+    #result.partial  { color: #f0a020; }
+    #result.wrong    { color: #e05050; }
+
+    /* Correct answers */
+    .answers-block {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: #0f1923;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #7a8fa6;
+      min-height: 0;
+    }
+
+    .answers-block.has-answers { display: block; }
+
+    .answers-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4a5f72;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    #correctAnswers {
+      color: #a0c4b0;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>⚽ Who scored here?</h1>
+    <p>Icelandic football — name the scorer</p>
+  </div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btnStadium" onclick="switchMode('stadium')">Away at Stadium</button>
+    <button class="mode-btn" id="btnHome" onclick="switchMode('home_team')">Away vs Home Team</button>
+  </div>
+
+  <div class="question-block">
+    <div class="question-row">
+      <span class="q-label">Away team</span>
+      <span class="q-value" id="team">—</span>
+    </div>
+    <div class="question-row">
+      <span class="q-label" id="contextLabel">Stadium</span>
+      <span class="q-value" id="stadium">—</span>
+    </div>
+  </div>
+
+  <p class="hint-text">Possible scorers: <b id="numAnswers">0</b></p>
+
+  <div class="input-wrapper">
+    <input type="text" id="playerInput" placeholder="Type player name..." autocomplete="off">
+    <ul id="suggestions"></ul>
+  </div>
+
+  <select id="seasonSelect"></select>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="submitAnswer()">Submit</button>
+    <button class="btn btn-secondary" onclick="newQuestion()">New Question</button>
+  </div>
+
+  <p id="result"></p>
+
+  <div class="answers-block">
+    <div class="answers-label">Correct answers</div>
+    <span id="correctAnswers"></span>
+  </div>
+</div>
+
+<script>
+let data = [];
+let questions = [];
+let seasons = [];
+let players = [];
+let index = {};
+let currentQuestion = null;
+let gameMode = 'stadium';
+
+fetch("output.json")
+  .then(res => res.json())
+  .then(json => {
+    data = json;
+    setupGame();
+  });
+
+function populateSeasonDropdown() {
+  const seasonSelect = document.getElementById("seasonSelect");
+  if (seasonSelect.children.length > 0) return;
+  seasons.forEach(season => {
+    const option = document.createElement("option");
+    option.value = season;
+    option.textContent = season;
+    seasonSelect.appendChild(option);
+  });
+}
+
+function buildIndex() {
+  questions = [];
+  index = {};
+  const seen = new Set();
+
+  data.forEach(row => {
+    const contextVal = gameMode === 'stadium' ? row.stadium : row.home_team;
+    const key = row.away_team + "|" + contextVal;
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      questions.push({ team: row.away_team, context: contextVal, key });
+    }
+
+    if (!index[key]) index[key] = new Set();
+    index[key].add(JSON.stringify({ player: row.scorer, season: row.season }));
+  });
+}
+
+function setupGame() {
+  players = [...new Set(data.map(d => d.scorer))];
+  seasons = [...new Set(data.map(d => d.season))].sort();
+  populateSeasonDropdown();
+  buildIndex();
+  newQuestion();
+}
+
+function switchMode(mode) {
+  gameMode = mode;
+  document.getElementById("btnStadium").classList.toggle("active", mode === 'stadium');
+  document.getElementById("btnHome").classList.toggle("active", mode === 'home_team');
+  document.getElementById("contextLabel").textContent = mode === 'stadium' ? 'Stadium' : 'Home team';
+  buildIndex();
+  newQuestion();
+}
+
+function newQuestion() {
+  currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+
+  document.getElementById("team").textContent = currentQuestion.team;
+  document.getElementById("stadium").textContent = currentQuestion.context;
+  document.getElementById("contextLabel").textContent = gameMode === 'stadium' ? 'Stadium' : 'Home team';
+
+  const resultEl = document.getElementById("result");
+  resultEl.textContent = "";
+  resultEl.className = "";
+
+  document.getElementById("playerInput").value = "";
+  document.getElementById("suggestions").innerHTML = "";
+
+  const possiblePlayers = index[currentQuestion.key] ? Array.from(index[currentQuestion.key]) : [];
+  document.getElementById("numAnswers").textContent = possiblePlayers.length;
+  document.getElementById("correctAnswers").textContent = "";
+}
+
+function submitAnswer() {
+  const player = document.getElementById("playerInput").value.trim();
+  const season = document.getElementById("seasonSelect").value;
+  const key = currentQuestion.key;
+
+  const entries = index[key] ? Array.from(index[key]).map(e => JSON.parse(e)) : [];
+  const normalizedPlayer = player.trim().toLowerCase();
+  const normalizedSeason = String(season).trim();
+
+  const exactMatch = entries.some(e =>
+    e.player.trim().toLowerCase() === normalizedPlayer &&
+    String(e.season).trim() === normalizedSeason
+  );
+  const playerMatch = entries.some(e =>
+    e.player.trim().toLowerCase() === normalizedPlayer
+  );
+
+  const resultEl = document.getElementById("result");
+  if (exactMatch) {
+    resultEl.textContent = "✅ Correct!";
+    resultEl.className = "correct";
+  } else if (playerMatch) {
+    resultEl.textContent = "⚠️ Correct player, wrong season!";
+    resultEl.className = "partial";
+  } else {
+    resultEl.textContent = "❌ Wrong!";
+    resultEl.className = "wrong";
+  }
+
+  const formatted = entries.map(e => `${e.player} (${e.season})`);
+  document.getElementById("correctAnswers").innerHTML = formatted.join("<br>");
+}
+
+// Autocomplete
+const input = document.getElementById("playerInput");
+const suggestions = document.getElementById("suggestions");
+
+input.addEventListener("input", () => {
+  const query = input.value.toLowerCase();
+  if (!query) { suggestions.innerHTML = ""; return; }
+
+  const matches = players
+    .filter(p => p.toLowerCase().includes(query))
+    .slice(0, 10);
+
+  suggestions.innerHTML = "";
+  matches.forEach(name => {
+    const li = document.createElement("li");
+    li.textContent = name;
+    li.onclick = () => {
+      input.value = name;
+      suggestions.innerHTML = "";
+    };
+    suggestions.appendChild(li);
+  });
+});
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".input-wrapper")) suggestions.innerHTML = "";
+});
+</script>
+
+</body>
+</html>
