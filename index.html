@@ -272,44 +272,43 @@
 
 <div class="card">
   <div class="header">
-    <h1>⚽ Who scored here?</h1>
-    <p>Icelandic football — name the scorer</p>
+    <h1>⚽ Ljár í þúfu</h1>
   </div>
 
   <div class="mode-toggle">
-    <button class="mode-btn active" id="btnStadium" onclick="switchMode('stadium')">Away at Stadium</button>
-    <button class="mode-btn" id="btnHome" onclick="switchMode('home_team')">Away vs Home Team</button>
+    <button class="mode-btn active" id="btnStadium" onclick="switchMode('stadium')">Útilið á Velli</button>
+    <button class="mode-btn" id="btnHome" onclick="switchMode('home_team')">Útilið gegn Heimaliði</button>
   </div>
 
   <div class="question-block">
     <div class="question-row">
-      <span class="q-label">Away team</span>
+      <span class="q-label">Útilið </span>
       <span class="q-value" id="team">—</span>
     </div>
     <div class="question-row">
-      <span class="q-label" id="contextLabel">Stadium</span>
+      <span class="q-label" id="contextLabel">Völlur</span>
       <span class="q-value" id="stadium">—</span>
     </div>
   </div>
 
-  <p class="hint-text">Possible scorers: <b id="numAnswers">0</b></p>
+  <p class="hint-text">Fjöldi markaskorara: <b id="numAnswers">0</b></p>
 
   <div class="input-wrapper">
-    <input type="text" id="playerInput" placeholder="Type player name..." autocomplete="off">
+    <input type="text" id="playerInput" placeholder="Markaskorari..." autocomplete="off">
     <ul id="suggestions"></ul>
   </div>
 
   <select id="seasonSelect"></select>
 
   <div class="btn-row">
-    <button class="btn btn-primary" onclick="submitAnswer()">Submit</button>
-    <button class="btn btn-secondary" onclick="newQuestion()">New Question</button>
+    <button class="btn btn-primary" onclick="submitAnswer()">Skila svari</button>
+    <button class="btn btn-secondary" onclick="newQuestion()">Ný spurning</button>
   </div>
 
   <p id="result"></p>
 
   <div class="answers-block">
-    <div class="answers-label">Correct answers</div>
+    <div class="answers-label">Rétt svör</div>
     <span id="correctAnswers"></span>
   </div>
 </div>
@@ -372,7 +371,7 @@ function switchMode(mode) {
   gameMode = mode;
   document.getElementById("btnStadium").classList.toggle("active", mode === 'stadium');
   document.getElementById("btnHome").classList.toggle("active", mode === 'home_team');
-  document.getElementById("contextLabel").textContent = mode === 'stadium' ? 'Stadium' : 'Home team';
+  document.getElementById("contextLabel").textContent = mode === 'stadium' ? 'Völlur' : 'Heimalið';
   buildIndex();
   newQuestion();
 }
@@ -382,7 +381,7 @@ function newQuestion() {
 
   document.getElementById("team").textContent = currentQuestion.team;
   document.getElementById("stadium").textContent = currentQuestion.context;
-  document.getElementById("contextLabel").textContent = gameMode === 'stadium' ? 'Stadium' : 'Home team';
+  document.getElementById("contextLabel").textContent = gameMode === 'stadium' ? 'Völlur' : 'Heimalið';
 
   const resultEl = document.getElementById("result");
   resultEl.textContent = "";
