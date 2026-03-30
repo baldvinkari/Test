@@ -240,6 +240,16 @@
     #result.partial  { color: #f0a020; }
     #result.wrong    { color: #e05050; }
 
+    /* Display mode toggle label */
+    .toggle-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4a5f72;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
     /* Correct answers */
     .answers-block {
       margin-top: 16px;
@@ -307,8 +317,14 @@
 
   <p id="result"></p>
 
+  <div class="toggle-label" style="margin-top:18px;">Sýna niðurstöður sem</div>
+  <div class="mode-toggle" style="margin-bottom:0;">
+    <button class="mode-btn active" id="btnAll" onclick="switchDisplay('all')">Öll rétt svör</button>
+    <button class="mode-btn" id="btnGame" onclick="switchDisplay('game')">Leikurinn</button>
+  </div>
+
   <div class="answers-block">
-    <div class="answers-label">Rétt svör</div>
+    <div class="answers-label" id="answersLabel">Rétt svör</div>
     <span id="correctAnswers"></span>
   </div>
 </div>
@@ -321,6 +337,8 @@ let players = [];
 let index = {};
 let currentQuestion = null;
 let gameMode = 'stadium';
+let displayMode = 'all';
+let lastSeason = null;
 
 fetch("output.json")
   .then(res => res.json())
@@ -376,6 +394,45 @@ function switchMode(mode) {
   newQuestion();
 }
 
+function switchDisplay(mode) {
+  displayMode = mode;
+  document.getElementById("btnAll").classList.toggle("active", mode === 'all');
+  document.getElementById("btnGame").classList.toggle("active", mode === 'game');
+  // Re-render results immediately if an answer was already submitted
+  if (lastSeason !== null) showResults(lastSeason);
+}
+
+function showResults(season) {
+  const key = currentQuestion.key;
+  if (displayMode === 'all') {
+    document.getElementById("answersLabel").textContent = "Rétt svör";
+    const entries = index[key] ? Array.from(index[key]).map(e => JSON.parse(e)) : [];
+    const formatted = entries.map(e => `${e.player} (${e.season})`);
+    document.getElementById("correctAnswers").innerHTML = formatted.join("<br>");
+  } else {
+    document.getElementById("answersLabel").textContent = "Leikurinn";
+    const normalizedSeason = String(season).trim();
+    const gameRows = data.filter(row => {
+      const seasonMatch = String(row.season).trim() === normalizedSeason;
+      const teamMatch = row.away_team === currentQuestion.team;
+      const contextMatch = gameMode === 'stadium'
+        ? row.stadium === currentQuestion.context
+        : row.home_team === currentQuestion.context;
+      return seasonMatch && teamMatch && contextMatch;
+    });
+
+    if (gameRows.length === 0) {
+      document.getElementById("correctAnswers").innerHTML =
+        '<span style="color:#e05050">Leikurinn fannst ekki í gagnagrunni</span>';
+    } else {
+      const finalScore = gameRows[gameRows.length - 1].score_after_goal;
+      const goals = gameRows.map(r => `${r.scorer} &mdash; ${r.score_after_goal}`).join("<br>");
+      document.getElementById("correctAnswers").innerHTML =
+        `<b style="color:#e0e0e0">Lokaúrslit: ${finalScore}</b><br>${goals}`;
+    }
+  }
+}
+
 function newQuestion() {
   currentQuestion = questions[Math.floor(Math.random() * questions.length)];
 
@@ -393,6 +450,7 @@ function newQuestion() {
   const possiblePlayers = index[currentQuestion.key] ? Array.from(index[currentQuestion.key]) : [];
   document.getElementById("numAnswers").textContent = possiblePlayers.length;
   document.getElementById("correctAnswers").textContent = "";
+  lastSeason = null;
 }
 
 function submitAnswer() {
@@ -424,8 +482,8 @@ function submitAnswer() {
     resultEl.className = "wrong";
   }
 
-  const formatted = entries.map(e => `${e.player} (${e.season})`);
-  document.getElementById("correctAnswers").innerHTML = formatted.join("<br>");
+  lastSeason = season;
+  showResults(season);
 }
 
 // Autocomplete
