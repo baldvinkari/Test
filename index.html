@@ -428,7 +428,7 @@ function showResults(season) {
       const finalScore = gameRows[gameRows.length - 1].score_after_goal;
       const goals = gameRows.map(r => `${r.scorer} &mdash; ${r.score_after_goal}`).join("<br>");
       document.getElementById("correctAnswers").innerHTML =
-        `<b style="color:#e0e0e0">Lokaúrslit: ${finalScore}</b><br>${goals}`;
+        `<b style="color:#e0e0e0">Markaskorar útiliðs;
     }
   }
 }
