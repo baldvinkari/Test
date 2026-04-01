@@ -427,8 +427,8 @@ function showResults(season) {
     } else {
       const finalScore = gameRows[gameRows.length - 1].score_after_goal;
       const goals = gameRows.map(r => `${r.scorer} &mdash; ${r.score_after_goal}`).join("<br>");
-      document.getElementById("correctAnswers").innerHTML =
-        `<b style="color:#e0e0e0">Markaskorar útiliðs;
+     document.getElementById("correctAnswers").innerHTML =
+  '<b style="color:#e0e0e0">Markaskorarar útiliðs</b>';
     }
   }
 }
