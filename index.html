@@ -330,22 +330,26 @@
 </div>
 
 <script>
-let data = [];
+let goalsData = [];
+let matchesData = [];
+let goalsIndex = {};      // key (away_team|context) → [{player, season, match_id}] home non-OG only
+let matchGoalsIndex = {}; // match_id → [{scorer, team, own_goal, score_after_goal}] all goals
 let questions = [];
 let seasons = [];
 let players = [];
-let index = {};
 let currentQuestion = null;
 let gameMode = 'stadium';
 let displayMode = 'all';
-let lastSeason = null;
+let answered = false;
 
-fetch("output.json")
-  .then(res => res.json())
-  .then(json => {
-    data = json;
-    setupGame();
-  });
+Promise.all([
+  fetch("goals_clean.json").then(r => r.json()),
+  fetch("matches_clean.json").then(r => r.json())
+]).then(([goals, matches]) => {
+  goalsData = goals;
+  matchesData = matches;
+  setupGame();
+});
 
 function populateSeasonDropdown() {
   const seasonSelect = document.getElementById("seasonSelect");
@@ -359,27 +363,42 @@ function populateSeasonDropdown() {
 }
 
 function buildIndex() {
+  goalsIndex = {};
+  matchGoalsIndex = {};
   questions = [];
-  index = {};
   const seen = new Set();
 
-  data.forEach(row => {
+  goalsData.forEach(row => {
+    const id = row.match_id;
     const contextVal = gameMode === 'stadium' ? row.stadium : row.home_team;
     const key = row.away_team + "|" + contextVal;
 
+    // All goals go into the match display index
+    if (!matchGoalsIndex[id]) matchGoalsIndex[id] = [];
+    matchGoalsIndex[id].push({
+      scorer: row.scorer,
+      team: row.team,
+      own_goal: row.own_goal,
+      score_after_goal: row.score_after_goal
+    });
+
+    // Build question list (one entry per unique away_team + context combo)
     if (!seen.has(key)) {
       seen.add(key);
       questions.push({ team: row.away_team, context: contextVal, key });
     }
 
-    if (!index[key]) index[key] = new Set();
-    index[key].add(JSON.stringify({ player: row.scorer, season: row.season }));
+    // Valid answers: away team, non-own-goal only
+    if (row.team === "away" && !row.own_goal) {
+      if (!goalsIndex[key]) goalsIndex[key] = [];
+      goalsIndex[key].push({ player: row.scorer, season: row.season, match_id: id });
+    }
   });
 }
 
 function setupGame() {
-  players = [...new Set(data.map(d => d.scorer))];
-  seasons = [...new Set(data.map(d => d.season))].sort();
+  players = [...new Set(goalsData.map(d => d.scorer))];
+  seasons = [...new Set(goalsData.map(d => d.season))].sort();
   populateSeasonDropdown();
   buildIndex();
   newQuestion();
@@ -398,43 +417,49 @@ function switchDisplay(mode) {
   displayMode = mode;
   document.getElementById("btnAll").classList.toggle("active", mode === 'all');
   document.getElementById("btnGame").classList.toggle("active", mode === 'game');
-  // Re-render results immediately if an answer was already submitted
-  if (lastSeason !== null) showResults(lastSeason);
+  if (answered) showResults();
 }
 
-function showResults(season) {
+function showResults() {
   const key = currentQuestion.key;
+
   if (displayMode === 'all') {
     document.getElementById("answersLabel").textContent = "Rétt svör";
-    const entries = index[key] ? Array.from(index[key]).map(e => JSON.parse(e)) : [];
-    const formatted = entries.map(e => `${e.player} (${e.season})`);
-    document.getElementById("correctAnswers").innerHTML = formatted.join("<br>");
+    const entries = goalsIndex[key] || [];
+    document.getElementById("correctAnswers").innerHTML =
+      entries.length > 0
+        ? entries.map(e => `${e.player} (${e.season})`).join("<br>")
+        : '<span style="color:#7a8fa6">Engir heimalið markar</span>';
   } else {
+    // Find the specific match for the guessed season
     document.getElementById("answersLabel").textContent = "Leikurinn";
-    const normalizedSeason = String(season).trim();
-    const gameRows = data.filter(row => {
-      const seasonMatch = String(row.season).trim() === normalizedSeason;
-      const teamMatch = row.away_team === currentQuestion.team;
-      const contextMatch = gameMode === 'stadium'
-        ? row.stadium === currentQuestion.context
-        : row.home_team === currentQuestion.context;
-      return seasonMatch && teamMatch && contextMatch;
-    });
+    const season = String(document.getElementById("seasonSelect").value).trim();
+    const entries = goalsIndex[key] || [];
+    const matchEntry = entries.find(e => String(e.season) === season);
+    const matchId = matchEntry ? matchEntry.match_id : null;
+    const matchRecord = matchId ? matchesData.find(m => m.match_id === matchId) : null;
 
-    if (gameRows.length === 0) {
+    if (!matchId || !matchRecord) {
       document.getElementById("correctAnswers").innerHTML =
-        '<span style="color:#e05050">Leikurinn fannst ekki í gagnagrunni</span>';
-    } else {
-      const finalScore = gameRows[gameRows.length - 1].score_after_goal;
-      const goals = gameRows.map(r => `${r.scorer} &mdash; ${r.score_after_goal}`).join("<br>");
-     document.getElementById("correctAnswers").innerHTML =
-  `<b style="color:#e0e0e0">Markaskorarar útiliðs</b><br>${goals}`;
+        '<span style="color:#e05050">Leikurinn fannst ekki á völdu tímabili</span>';
+      return;
     }
+
+    const allGoals = matchGoalsIndex[matchId] || [];
+    const goals = allGoals.map(g => {
+      const tag = g.own_goal ? ' <span style="color:#f0a020">(OG)</span>'
+                : g.team === 'home' ? ' <span style="color:#7a8fa6">(heimalið)</span>'
+                : '';
+      return `${g.scorer}${tag} &mdash; ${g.score_after_goal}`;
+    }).join("<br>");
+    document.getElementById("correctAnswers").innerHTML =
+      `<b style="color:#e0e0e0">Lokaúrslit: ${matchRecord.score}</b><br>${goals}`;
   }
 }
 
 function newQuestion() {
   currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+  answered = false;
 
   document.getElementById("team").textContent = currentQuestion.team;
   document.getElementById("stadium").textContent = currentQuestion.context;
@@ -447,27 +472,24 @@ function newQuestion() {
   document.getElementById("playerInput").value = "";
   document.getElementById("suggestions").innerHTML = "";
 
-  const possiblePlayers = index[currentQuestion.key] ? Array.from(index[currentQuestion.key]) : [];
-  document.getElementById("numAnswers").textContent = possiblePlayers.length;
+  const scorers = goalsIndex[currentQuestion.key] || [];
+  document.getElementById("numAnswers").textContent = scorers.length;
   document.getElementById("correctAnswers").textContent = "";
-  lastSeason = null;
 }
 
 function submitAnswer() {
   const player = document.getElementById("playerInput").value.trim();
   const season = document.getElementById("seasonSelect").value;
-  const key = currentQuestion.key;
-
-  const entries = index[key] ? Array.from(index[key]).map(e => JSON.parse(e)) : [];
-  const normalizedPlayer = player.trim().toLowerCase();
+  const entries = goalsIndex[currentQuestion.key] || [];
+  const normalizedPlayer = player.toLowerCase();
   const normalizedSeason = String(season).trim();
 
   const exactMatch = entries.some(e =>
-    e.player.trim().toLowerCase() === normalizedPlayer &&
-    String(e.season).trim() === normalizedSeason
+    e.player.toLowerCase() === normalizedPlayer &&
+    String(e.season) === normalizedSeason
   );
   const playerMatch = entries.some(e =>
-    e.player.trim().toLowerCase() === normalizedPlayer
+    e.player.toLowerCase() === normalizedPlayer
   );
 
   const resultEl = document.getElementById("result");
@@ -482,8 +504,8 @@ function submitAnswer() {
     resultEl.className = "wrong";
   }
 
-  lastSeason = season;
-  showResults(season);
+  answered = true;
+  showResults();
 }
 
 // Autocomplete
