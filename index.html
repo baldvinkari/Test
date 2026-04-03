@@ -40,44 +40,62 @@
       letter-spacing: -0.5px;
     }
 
-    .header p {
-      color: #7a8fa6;
-      font-size: 0.85rem;
-      margin: 0;
-    }
-
-    /* Mode toggle */
-    .mode-toggle {
+    /* Level selector */
+    .level-selector {
       display: flex;
       background: #0f1923;
       border-radius: 10px;
       padding: 4px;
-      margin-bottom: 28px;
+      margin-bottom: 22px;
       gap: 4px;
     }
 
-    .mode-btn {
+    .level-btn {
       flex: 1;
-      padding: 9px 12px;
+      padding: 9px 6px;
       border: none;
       border-radius: 7px;
       cursor: pointer;
       font-size: 0.82rem;
-      font-weight: 600;
+      font-weight: 700;
       transition: all 0.2s;
       background: transparent;
       color: #7a8fa6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
     }
 
-    .mode-btn.active {
-      background: #00b04f;
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(0,176,79,0.35);
+    .level-btn .level-num {
+      font-size: 1rem;
     }
 
-    .mode-btn:not(.active):hover {
+    .level-btn .level-sub {
+      font-size: 0.65rem;
+      font-weight: 500;
+      opacity: 0.7;
+    }
+
+    /* Each level gets a distinct colour when active */
+    .level-btn[data-level="1"].active { background: #00b04f; color: #fff; box-shadow: 0 2px 8px rgba(0,176,79,0.35); }
+    .level-btn[data-level="2"].active { background: #4caf8a; color: #fff; box-shadow: 0 2px 8px rgba(76,175,138,0.35); }
+    .level-btn[data-level="3"].active { background: #f0a020; color: #fff; box-shadow: 0 2px 8px rgba(240,160,32,0.35); }
+    .level-btn[data-level="4"].active { background: #e07030; color: #fff; box-shadow: 0 2px 8px rgba(224,112,48,0.35); }
+    .level-btn[data-level="5"].active { background: #e05050; color: #fff; box-shadow: 0 2px 8px rgba(224,80,80,0.35); }
+
+    .level-btn:not(.active):hover {
       color: #c0cfd8;
       background: rgba(255,255,255,0.05);
+    }
+
+    /* Range badge shown on the active level button */
+    .level-range {
+      font-size: 0.7rem;
+      color: #7a8fa6;
+      text-align: center;
+      margin-top: -10px;
+      margin-bottom: 16px;
     }
 
     /* Question card */
@@ -136,10 +154,7 @@
       transition: border-color 0.2s;
     }
 
-    input[type="text"]:focus {
-      border-color: #00b04f;
-    }
-
+    input[type="text"]:focus { border-color: #00b04f; }
     input[type="text"]::placeholder { color: #4a5f72; }
 
     ul#suggestions {
@@ -236,21 +251,11 @@
       text-align: center;
     }
 
-    #result.correct  { color: #00c957; }
-    #result.partial  { color: #f0a020; }
-    #result.wrong    { color: #e05050; }
+    #result.correct { color: #00c957; }
+    #result.partial { color: #f0a020; }
+    #result.wrong   { color: #e05050; }
 
-    /* Display mode toggle label */
-    .toggle-label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #4a5f72;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    /* Correct answers */
+    /* Game display */
     .answers-block {
       margin-top: 16px;
       padding: 14px 16px;
@@ -258,10 +263,7 @@
       border-radius: 8px;
       font-size: 0.85rem;
       color: #7a8fa6;
-      min-height: 0;
     }
-
-    .answers-block.has-answers { display: block; }
 
     .answers-label {
       font-size: 0.72rem;
@@ -285,19 +287,42 @@
     <h1>⚽ Ljár í þúfu</h1>
   </div>
 
-  <div class="mode-toggle">
-    <button class="mode-btn active" id="btnStadium" onclick="switchMode('stadium')">Útilið á Velli</button>
-    <button class="mode-btn" id="btnHome" onclick="switchMode('home_team')">Útilið gegn Heimaliði</button>
+  <!-- Level selector: 1 = easiest (most scorers), 5 = hardest (fewest scorers) -->
+  <div class="level-selector">
+    <button class="level-btn active" data-level="1" onclick="switchLevel(1)">
+      <span class="level-num">1</span>
+      <span class="level-sub">Auðveldast</span>
+    </button>
+    <button class="level-btn" data-level="2" onclick="switchLevel(2)">
+      <span class="level-num">2</span>
+      <span class="level-sub">Auðvelt</span>
+    </button>
+    <button class="level-btn" data-level="3" onclick="switchLevel(3)">
+      <span class="level-num">3</span>
+      <span class="level-sub">Miðlungs</span>
+    </button>
+    <button class="level-btn" data-level="4" onclick="switchLevel(4)">
+      <span class="level-num">4</span>
+      <span class="level-sub">Erfitt</span>
+    </button>
+    <button class="level-btn" data-level="5" onclick="switchLevel(5)">
+      <span class="level-num">5</span>
+      <span class="level-sub">Erfiðast</span>
+    </button>
   </div>
 
+  <!-- Shows the scorer-count range for the current level -->
+  <p class="level-range" id="levelRange"></p>
+
+  <!-- Question: away team vs home team -->
   <div class="question-block">
     <div class="question-row">
-      <span class="q-label">Útilið </span>
-      <span class="q-value" id="team">—</span>
+      <span class="q-label">Útilið</span>
+      <span class="q-value" id="awayTeam">—</span>
     </div>
     <div class="question-row">
-      <span class="q-label" id="contextLabel">Völlur</span>
-      <span class="q-value" id="stadium">—</span>
+      <span class="q-label">Heimalið</span>
+      <span class="q-value" id="homeTeam">—</span>
     </div>
   </div>
 
@@ -317,14 +342,8 @@
 
   <p id="result"></p>
 
-  <div class="toggle-label" style="margin-top:18px;">Sýna niðurstöður sem</div>
-  <div class="mode-toggle" style="margin-bottom:0;">
-    <button class="mode-btn active" id="btnAll" onclick="switchDisplay('all')">Öll rétt svör</button>
-    <button class="mode-btn" id="btnGame" onclick="switchDisplay('game')">Leikurinn</button>
-  </div>
-
   <div class="answers-block">
-    <div class="answers-label" id="answersLabel">Rétt svör</div>
+    <div class="answers-label" id="answersLabel">Leikurinn</div>
     <span id="correctAnswers"></span>
   </div>
 </div>
@@ -334,27 +353,26 @@
 let goalsData = [];    // raw records from goals_clean.json (one row per goal)
 let matchesData = [];  // raw records from matches_clean.json (one row per match)
 
-// goalsIndex: key "away_team|context" → [{player, season, match_id}]
-//   Only away-team, non-own-goal goals. Used for answer validation and "Öll rétt svör".
+// goalsIndex: key "away_team|home_team" → [{player, season, match_id}]
+//   Only away-team, non-own-goal goals. Used for answer validation.
 let goalsIndex = {};
 
 // matchGoalsIndex: match_id → [{scorer, team, own_goal, score_after_goal}]
-//   All goals in a match. Used only for the "Leikurinn" game display.
+//   All goals in a match. Used only for the game display after submitting.
 let matchGoalsIndex = {};
 
-// questions: array of {team, context, key} — one entry per unique away_team|context
-//   combo that has at least one valid away goal. Built from goalsIndex keys.
-let questions = [];
+// levelBuckets: level (1–5) → array of question objects {awayTeam, homeTeam, key}
+//   Level 1 = most scorers (easiest), Level 5 = fewest scorers (hardest).
+//   Questions are sorted by answer count and split into 5 equal-ish buckets.
+let levelBuckets = {};
 
-let seasons = [];         // sorted list of all seasons, for the dropdown
-let players = [];         // all unique scorers (home + away + OG), for autocomplete
+let seasons = [];      // sorted list of all seasons, for the dropdown
+let players = [];      // all unique scorers (home + away + OG), for autocomplete
 let currentQuestion = null;
-let gameMode = 'stadium'; // 'stadium' or 'home_team' — controls what context is shown
-let displayMode = 'all';  // 'all' (list all correct answers) or 'game' (show full match)
-let answered = false;     // true once the user has submitted an answer for the current question
+let currentLevel = 1;  // currently selected difficulty level
+let answered = false;  // true once the user has submitted an answer
 
 // ─── Data loading ─────────────────────────────────────────────────────────────
-// Load both JSON files in parallel, then initialise the game.
 Promise.all([
   fetch("goals_clean.json").then(r => r.json()),
   fetch("matches_clean.json").then(r => r.json())
@@ -366,10 +384,10 @@ Promise.all([
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 function setupGame() {
-  // Autocomplete list: all scorers regardless of team or own-goal status
+  // Autocomplete covers all scorers regardless of team or own-goal status
   players = [...new Set(goalsData.map(d => d.scorer))];
 
-  // Season dropdown: all unique seasons in sorted order
+  // Season dropdown: all unique seasons sorted
   seasons = [...new Set(goalsData.map(d => d.season))].sort();
   populateSeasonDropdown();
 
@@ -378,33 +396,28 @@ function setupGame() {
 }
 
 function populateSeasonDropdown() {
-  const seasonSelect = document.getElementById("seasonSelect");
-  if (seasonSelect.children.length > 0) return; // already populated
-  seasons.forEach(season => {
-    const option = document.createElement("option");
-    option.value = season;
-    option.textContent = season;
-    seasonSelect.appendChild(option);
+  const sel = document.getElementById("seasonSelect");
+  seasons.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    sel.appendChild(opt);
   });
 }
 
-// ─── Index building ───────────────────────────────────────────────────────────
-// Called once on load and again whenever the game mode changes.
-// Rebuilds goalsIndex, matchGoalsIndex, and the questions pool.
+// ─── Index & level bucket building ───────────────────────────────────────────
+// Builds goalsIndex and matchGoalsIndex from goals_clean.json, then assigns
+// each away|home combo to one of 5 level buckets based on answer count.
 function buildIndex() {
   goalsIndex = {};
   matchGoalsIndex = {};
-  questions = [];
+  const allQuestions = []; // temporary list before bucketing
 
   goalsData.forEach(row => {
     const id = row.match_id;
-    // Context depends on mode: stadium name or the home team's name
-    const contextVal = gameMode === 'stadium' ? row.stadium : row.home_team;
-    // Composite key uniquely identifies an away_team + context combination
-    const key = row.away_team + "|" + contextVal;
+    const key = row.away_team + "|" + row.home_team;
 
-    // Every goal (home, away, OG) goes into matchGoalsIndex so we can
-    // display the full match timeline in "Leikurinn" mode.
+    // All goals go into matchGoalsIndex for the full game display
     if (!matchGoalsIndex[id]) matchGoalsIndex[id] = [];
     matchGoalsIndex[id].push({
       scorer: row.scorer,
@@ -414,50 +427,79 @@ function buildIndex() {
     });
 
     // Only away-team, non-own-goal goals are valid answers.
-    // The first time we see a valid goal for a key we also register it as a question,
-    // guaranteeing every question has at least one correct answer.
+    // Register the combo as a question the first time a valid goal is seen.
     if (row.team === "away" && !row.own_goal) {
       if (!goalsIndex[key]) {
         goalsIndex[key] = [];
-        questions.push({ team: row.away_team, context: contextVal, key });
+        allQuestions.push({ awayTeam: row.away_team, homeTeam: row.home_team, key });
       }
       goalsIndex[key].push({ player: row.scorer, season: row.season, match_id: id });
     }
   });
+
+  assignLevels(allQuestions);
 }
 
-// ─── Mode & display toggles ───────────────────────────────────────────────────
-// Switch between "away team at stadium" and "away team vs home team" question modes.
-function switchMode(mode) {
-  gameMode = mode;
-  document.getElementById("btnStadium").classList.toggle("active", mode === 'stadium');
-  document.getElementById("btnHome").classList.toggle("active", mode === 'home_team');
-  document.getElementById("contextLabel").textContent = mode === 'stadium' ? 'Völlur' : 'Heimalið';
-  // Rebuild the index for the new context type, then show a fresh question
-  buildIndex();
+// Splits questions into 5 buckets by answer count.
+// Sorted descending so the highest counts land in level 1 (easiest).
+function assignLevels(allQuestions) {
+  // Sort by number of valid answers, most first
+  allQuestions.sort((a, b) =>
+    (goalsIndex[b.key] ? goalsIndex[b.key].length : 0) -
+    (goalsIndex[a.key] ? goalsIndex[a.key].length : 0)
+  );
+
+  const n = allQuestions.length;
+  levelBuckets = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+
+  allQuestions.forEach((q, i) => {
+    // Map position in sorted list to a level 1–5
+    const level = Math.min(5, Math.floor((i / n) * 5) + 1);
+    q.level = level;
+    levelBuckets[level].push(q);
+  });
+
+  updateLevelRange();
+}
+
+// ─── Level selector ───────────────────────────────────────────────────────────
+function switchLevel(level) {
+  currentLevel = level;
+
+  // Update active button styling
+  document.querySelectorAll(".level-btn").forEach(btn => {
+    btn.classList.toggle("active", parseInt(btn.dataset.level) === level);
+  });
+
+  updateLevelRange();
   newQuestion();
 }
 
-// Switch the results panel between listing all correct answers vs showing the full match.
-function switchDisplay(mode) {
-  displayMode = mode;
-  document.getElementById("btnAll").classList.toggle("active", mode === 'all');
-  document.getElementById("btnGame").classList.toggle("active", mode === 'game');
-  // Re-render immediately if the user has already submitted an answer
-  if (answered) showResults();
+// Shows the scorer-count range for the current level beneath the buttons
+function updateLevelRange() {
+  const bucket = levelBuckets[currentLevel] || [];
+  if (bucket.length === 0) {
+    document.getElementById("levelRange").textContent = "";
+    return;
+  }
+  const counts = bucket.map(q => goalsIndex[q.key].length);
+  const min = Math.min(...counts);
+  const max = Math.max(...counts);
+  const label = min === max ? `${min} möguleg svör` : `${min}–${max} möguleg svör`;
+  document.getElementById("levelRange").textContent =
+    `Stig ${currentLevel}: ${label} (${bucket.length} spurningar)`;
 }
 
 // ─── Question ─────────────────────────────────────────────────────────────────
 function newQuestion() {
-  // Pick a random away_team + context combo from the validated question pool
-  currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+  const pool = levelBuckets[currentLevel] || [];
+  currentQuestion = pool[Math.floor(Math.random() * pool.length)];
   answered = false;
 
-  document.getElementById("team").textContent = currentQuestion.team;
-  document.getElementById("stadium").textContent = currentQuestion.context;
-  document.getElementById("contextLabel").textContent = gameMode === 'stadium' ? 'Völlur' : 'Heimalið';
+  document.getElementById("awayTeam").textContent = currentQuestion.awayTeam;
+  document.getElementById("homeTeam").textContent = currentQuestion.homeTeam;
 
-  // Clear previous result, input, and answer panel
+  // Clear previous state
   const resultEl = document.getElementById("result");
   resultEl.textContent = "";
   resultEl.className = "";
@@ -465,7 +507,7 @@ function newQuestion() {
   document.getElementById("suggestions").innerHTML = "";
   document.getElementById("correctAnswers").textContent = "";
 
-  // Show the number of valid (player, season) answer combos as a hint
+  // Hint: total valid (player, season) combos for this matchup
   const scorers = goalsIndex[currentQuestion.key] || [];
   document.getElementById("numAnswers").textContent = scorers.length;
 }
@@ -475,18 +517,15 @@ function submitAnswer() {
   const player = document.getElementById("playerInput").value.trim();
   const season = document.getElementById("seasonSelect").value;
   const entries = goalsIndex[currentQuestion.key] || [];
-  const normalizedPlayer = player.toLowerCase();
-  const normalizedSeason = String(season).trim();
+  const normPlayer = player.toLowerCase();
+  const normSeason = String(season).trim();
 
   // Exact match: correct player AND correct season
   const exactMatch = entries.some(e =>
-    e.player.toLowerCase() === normalizedPlayer &&
-    String(e.season) === normalizedSeason
+    e.player.toLowerCase() === normPlayer && String(e.season) === normSeason
   );
-  // Partial match: correct player but wrong season
-  const playerMatch = entries.some(e =>
-    e.player.toLowerCase() === normalizedPlayer
-  );
+  // Partial: correct player, wrong season
+  const playerMatch = entries.some(e => e.player.toLowerCase() === normPlayer);
 
   const resultEl = document.getElementById("result");
   if (exactMatch) {
@@ -501,59 +540,45 @@ function submitAnswer() {
   }
 
   answered = true;
-  showResults();
+  showGame();
 }
 
-// ─── Results display ──────────────────────────────────────────────────────────
-function showResults() {
-  const key = currentQuestion.key;
+// ─── Game display ─────────────────────────────────────────────────────────────
+// Shows the full goal timeline for the match matching the selected season.
+// matchesData is used only here to get the final score.
+function showGame() {
+  document.getElementById("answersLabel").textContent = "Leikurinn";
+  const season = String(document.getElementById("seasonSelect").value).trim();
 
-  if (displayMode === 'all') {
-    // List every valid (player, season) combo for this away_team + context
-    document.getElementById("answersLabel").textContent = "Rétt svör";
-    const entries = goalsIndex[key] || [];
+  // Find the match record by season + team names
+  const matchRecord = matchesData.find(m =>
+    String(m.season) === season &&
+    m.away_team === currentQuestion.awayTeam &&
+    m.home_team === currentQuestion.homeTeam
+  );
+
+  if (!matchRecord) {
     document.getElementById("correctAnswers").innerHTML =
-      entries.map(e => `${e.player} (${e.season})`).join("<br>");
-
-  } else {
-    // Show the full goal timeline for the specific match the user guessed.
-    document.getElementById("answersLabel").textContent = "Leikurinn";
-    const season = String(document.getElementById("seasonSelect").value).trim();
-
-    // Find the match record directly from matchesData using team names and season.
-    const awayTeam = currentQuestion.team;
-    const contextVal = currentQuestion.context;
-    const matchRecord = matchesData.find(m =>
-      String(m.season) === season &&
-      m.away_team === awayTeam &&
-      (gameMode === 'stadium' ? m.stadium === contextVal : m.home_team === contextVal)
-    );
-    const matchId = matchRecord ? matchRecord.match_id : null;
-
-    if (!matchId || !matchRecord) {
-      document.getElementById("correctAnswers").innerHTML =
-        '<span style="color:#e05050">Leikurinn fannst ekki á völdu tímabili</span>';
-      return;
-    }
-
-    // Render all goals in the match; tag home goals and own goals for clarity
-    const allGoals = matchGoalsIndex[matchId] || [];
-    const goals = allGoals.map(g => {
-      const tag = g.own_goal
-        ? ' <span style="color:#f0a020">(OG)</span>'
-        : g.team === 'home'
-          ? ' <span style="color:#7a8fa6">(heimalið)</span>'
-          : '';
-      return `${g.scorer}${tag} &mdash; ${g.score_after_goal}`;
-    }).join("<br>");
-
-    document.getElementById("correctAnswers").innerHTML =
-      `<b style="color:#e0e0e0">Lokaúrslit: ${matchRecord.score}</b><br>${goals}`;
+      '<span style="color:#e05050">Leikurinn fannst ekki á völdu tímabili</span>';
+    return;
   }
+
+  // Render all goals; tag home goals and own goals for clarity
+  const allGoals = matchGoalsIndex[matchRecord.match_id] || [];
+  const goals = allGoals.map(g => {
+    const tag = g.own_goal
+      ? ' <span style="color:#f0a020">(OG)</span>'
+      : g.team === 'home'
+        ? ' <span style="color:#7a8fa6">(heimalið)</span>'
+        : '';
+    return `${g.scorer}${tag} &mdash; ${g.score_after_goal}`;
+  }).join("<br>");
+
+  document.getElementById("correctAnswers").innerHTML =
+    `<b style="color:#e0e0e0">Lokaúrslit: ${matchRecord.score}</b><br>${goals}`;
 }
 
 // ─── Autocomplete ─────────────────────────────────────────────────────────────
-// Filters the full player list (all scorers) as the user types.
 const input = document.getElementById("playerInput");
 const suggestions = document.getElementById("suggestions");
 
@@ -569,15 +594,12 @@ input.addEventListener("input", () => {
   matches.forEach(name => {
     const li = document.createElement("li");
     li.textContent = name;
-    li.onclick = () => {
-      input.value = name;
-      suggestions.innerHTML = "";
-    };
+    li.onclick = () => { input.value = name; suggestions.innerHTML = ""; };
     suggestions.appendChild(li);
   });
 });
 
-// Close the autocomplete dropdown when clicking outside the input wrapper
+// Close dropdown when clicking outside the input wrapper
 document.addEventListener("click", e => {
   if (!e.target.closest(".input-wrapper")) suggestions.innerHTML = "";
 });
