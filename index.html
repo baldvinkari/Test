@@ -77,12 +77,17 @@
       opacity: 0.7;
     }
 
-    /* Each level gets a distinct colour when active */
-    .level-btn[data-level="1"].active { background: #00b04f; color: #fff; box-shadow: 0 2px 8px rgba(0,176,79,0.35); }
-    .level-btn[data-level="2"].active { background: #4caf8a; color: #fff; box-shadow: 0 2px 8px rgba(76,175,138,0.35); }
-    .level-btn[data-level="3"].active { background: #f0a020; color: #fff; box-shadow: 0 2px 8px rgba(240,160,32,0.35); }
-    .level-btn[data-level="4"].active { background: #e07030; color: #fff; box-shadow: 0 2px 8px rgba(224,112,48,0.35); }
-    .level-btn[data-level="5"].active { background: #e05050; color: #fff; box-shadow: 0 2px 8px rgba(224,80,80,0.35); }
+    /* Each level gets a distinct colour when active (green → yellow → orange → red) */
+    .level-btn[data-level="1"].active  { background: #00b04f; color: #fff; box-shadow: 0 2px 8px rgba(0,176,79,0.35); }
+    .level-btn[data-level="2"].active  { background: #2db870; color: #fff; box-shadow: 0 2px 8px rgba(45,184,112,0.35); }
+    .level-btn[data-level="3"].active  { background: #4caf8a; color: #fff; box-shadow: 0 2px 8px rgba(76,175,138,0.35); }
+    .level-btn[data-level="4"].active  { background: #80b840; color: #fff; box-shadow: 0 2px 8px rgba(128,184,64,0.35); }
+    .level-btn[data-level="5"].active  { background: #b8b820; color: #fff; box-shadow: 0 2px 8px rgba(184,184,32,0.35); }
+    .level-btn[data-level="6"].active  { background: #f0a020; color: #fff; box-shadow: 0 2px 8px rgba(240,160,32,0.35); }
+    .level-btn[data-level="7"].active  { background: #e08028; color: #fff; box-shadow: 0 2px 8px rgba(224,128,40,0.35); }
+    .level-btn[data-level="8"].active  { background: #e07030; color: #fff; box-shadow: 0 2px 8px rgba(224,112,48,0.35); }
+    .level-btn[data-level="9"].active  { background: #e05840; color: #fff; box-shadow: 0 2px 8px rgba(224,88,64,0.35); }
+    .level-btn[data-level="10"].active { background: #e05050; color: #fff; box-shadow: 0 2px 8px rgba(224,80,80,0.35); }
 
     .level-btn:not(.active):hover {
       color: #c0cfd8;
@@ -287,28 +292,18 @@
     <h1>⚽ Ljár í þúfu</h1>
   </div>
 
-  <!-- Level selector: 1 = easiest (most scorers), 5 = hardest (fewest scorers) -->
+  <!-- Level selector: 1 = easiest (most scorers), 10 = hardest (fewest scorers) -->
   <div class="level-selector">
-    <button class="level-btn active" data-level="1" onclick="switchLevel(1)">
-      <span class="level-num">1</span>
-      <span class="level-sub">Auðveldast</span>
-    </button>
-    <button class="level-btn" data-level="2" onclick="switchLevel(2)">
-      <span class="level-num">2</span>
-      <span class="level-sub">Auðvelt</span>
-    </button>
-    <button class="level-btn" data-level="3" onclick="switchLevel(3)">
-      <span class="level-num">3</span>
-      <span class="level-sub">Miðlungs</span>
-    </button>
-    <button class="level-btn" data-level="4" onclick="switchLevel(4)">
-      <span class="level-num">4</span>
-      <span class="level-sub">Erfitt</span>
-    </button>
-    <button class="level-btn" data-level="5" onclick="switchLevel(5)">
-      <span class="level-num">5</span>
-      <span class="level-sub">Erfiðast</span>
-    </button>
+    <button class="level-btn active" data-level="1"  onclick="switchLevel(1)"><span class="level-num">1</span></button>
+    <button class="level-btn"        data-level="2"  onclick="switchLevel(2)"><span class="level-num">2</span></button>
+    <button class="level-btn"        data-level="3"  onclick="switchLevel(3)"><span class="level-num">3</span></button>
+    <button class="level-btn"        data-level="4"  onclick="switchLevel(4)"><span class="level-num">4</span></button>
+    <button class="level-btn"        data-level="5"  onclick="switchLevel(5)"><span class="level-num">5</span></button>
+    <button class="level-btn"        data-level="6"  onclick="switchLevel(6)"><span class="level-num">6</span></button>
+    <button class="level-btn"        data-level="7"  onclick="switchLevel(7)"><span class="level-num">7</span></button>
+    <button class="level-btn"        data-level="8"  onclick="switchLevel(8)"><span class="level-num">8</span></button>
+    <button class="level-btn"        data-level="9"  onclick="switchLevel(9)"><span class="level-num">9</span></button>
+    <button class="level-btn"        data-level="10" onclick="switchLevel(10)"><span class="level-num">10</span></button>
   </div>
 
   <!-- Shows the scorer-count range for the current level -->
@@ -361,9 +356,9 @@ let goalsIndex = {};
 //   All goals in a match. Used only for the game display after submitting.
 let matchGoalsIndex = {};
 
-// levelBuckets: level (1–5) → array of question objects {awayTeam, homeTeam, key}
-//   Level 1 = most scorers (easiest), Level 5 = fewest scorers (hardest).
-//   Questions are sorted by answer count and split into 5 equal-ish buckets.
+// levelBuckets: level (1–10) → array of question objects {awayTeam, homeTeam, key}
+//   Level 1 = most scorers (easiest), Level 10 = fewest scorers (hardest).
+//   Questions are sorted by answer count and split into 10 equal-ish buckets.
 let levelBuckets = {};
 
 let seasons = [];      // sorted list of all seasons, for the dropdown
@@ -407,7 +402,7 @@ function populateSeasonDropdown() {
 
 // ─── Index & level bucket building ───────────────────────────────────────────
 // Builds goalsIndex and matchGoalsIndex from goals_clean.json, then assigns
-// each away|home combo to one of 5 level buckets based on answer count.
+// each away|home combo to one of 10 level buckets based on answer count.
 function buildIndex() {
   goalsIndex = {};
   matchGoalsIndex = {};
@@ -440,7 +435,7 @@ function buildIndex() {
   assignLevels(allQuestions);
 }
 
-// Splits questions into 5 buckets by answer count.
+// Splits questions into 10 buckets by answer count.
 // Sorted descending so the highest counts land in level 1 (easiest).
 function assignLevels(allQuestions) {
   // Sort by number of valid answers, most first
@@ -450,11 +445,11 @@ function assignLevels(allQuestions) {
   );
 
   const n = allQuestions.length;
-  levelBuckets = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  levelBuckets = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [], 10: [] };
 
   allQuestions.forEach((q, i) => {
-    // Map position in sorted list to a level 1–5
-    const level = Math.min(5, Math.floor((i / n) * 5) + 1);
+    // Map position in sorted list to a level 1–10
+    const level = Math.min(10, Math.floor((i / n) * 10) + 1);
     q.level = level;
     levelBuckets[level].push(q);
   });
