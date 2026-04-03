@@ -330,18 +330,31 @@
 </div>
 
 <script>
-let goalsData = [];
-let matchesData = [];
-let goalsIndex = {};      // key (away_team|context) → [{player, season, match_id}] home non-OG only
-let matchGoalsIndex = {}; // match_id → [{scorer, team, own_goal, score_after_goal}] all goals
-let questions = [];
-let seasons = [];
-let players = [];
-let currentQuestion = null;
-let gameMode = 'stadium';
-let displayMode = 'all';
-let answered = false;
+// ─── State ────────────────────────────────────────────────────────────────────
+let goalsData = [];    // raw records from goals_clean.json (one row per goal)
+let matchesData = [];  // raw records from matches_clean.json (one row per match)
 
+// goalsIndex: key "away_team|context" → [{player, season, match_id}]
+//   Only away-team, non-own-goal goals. Used for answer validation and "Öll rétt svör".
+let goalsIndex = {};
+
+// matchGoalsIndex: match_id → [{scorer, team, own_goal, score_after_goal}]
+//   All goals in a match. Used only for the "Leikurinn" game display.
+let matchGoalsIndex = {};
+
+// questions: array of {team, context, key} — one entry per unique away_team|context
+//   combo that has at least one valid away goal. Built from goalsIndex keys.
+let questions = [];
+
+let seasons = [];         // sorted list of all seasons, for the dropdown
+let players = [];         // all unique scorers (home + away + OG), for autocomplete
+let currentQuestion = null;
+let gameMode = 'stadium'; // 'stadium' or 'home_team' — controls what context is shown
+let displayMode = 'all';  // 'all' (list all correct answers) or 'game' (show full match)
+let answered = false;     // true once the user has submitted an answer for the current question
+
+// ─── Data loading ─────────────────────────────────────────────────────────────
+// Load both JSON files in parallel, then initialise the game.
 Promise.all([
   fetch("goals_clean.json").then(r => r.json()),
   fetch("matches_clean.json").then(r => r.json())
@@ -351,9 +364,22 @@ Promise.all([
   setupGame();
 });
 
+// ─── Setup ────────────────────────────────────────────────────────────────────
+function setupGame() {
+  // Autocomplete list: all scorers regardless of team or own-goal status
+  players = [...new Set(goalsData.map(d => d.scorer))];
+
+  // Season dropdown: all unique seasons in sorted order
+  seasons = [...new Set(goalsData.map(d => d.season))].sort();
+  populateSeasonDropdown();
+
+  buildIndex();
+  newQuestion();
+}
+
 function populateSeasonDropdown() {
   const seasonSelect = document.getElementById("seasonSelect");
-  if (seasonSelect.children.length > 0) return;
+  if (seasonSelect.children.length > 0) return; // already populated
   seasons.forEach(season => {
     const option = document.createElement("option");
     option.value = season;
@@ -362,18 +388,23 @@ function populateSeasonDropdown() {
   });
 }
 
+// ─── Index building ───────────────────────────────────────────────────────────
+// Called once on load and again whenever the game mode changes.
+// Rebuilds goalsIndex, matchGoalsIndex, and the questions pool.
 function buildIndex() {
   goalsIndex = {};
   matchGoalsIndex = {};
   questions = [];
-  const seen = new Set();
 
   goalsData.forEach(row => {
     const id = row.match_id;
+    // Context depends on mode: stadium name or the home team's name
     const contextVal = gameMode === 'stadium' ? row.stadium : row.home_team;
+    // Composite key uniquely identifies an away_team + context combination
     const key = row.away_team + "|" + contextVal;
 
-    // All goals go into the match display index
+    // Every goal (home, away, OG) goes into matchGoalsIndex so we can
+    // display the full match timeline in "Leikurinn" mode.
     if (!matchGoalsIndex[id]) matchGoalsIndex[id] = [];
     matchGoalsIndex[id].push({
       scorer: row.scorer,
@@ -382,82 +413,43 @@ function buildIndex() {
       score_after_goal: row.score_after_goal
     });
 
-    // Build question list (one entry per unique away_team + context combo)
-    if (!seen.has(key)) {
-      seen.add(key);
-      questions.push({ team: row.away_team, context: contextVal, key });
-    }
-
-    // Valid answers: away team, non-own-goal only
+    // Only away-team, non-own-goal goals are valid answers.
+    // The first time we see a valid goal for a key we also register it as a question,
+    // guaranteeing every question has at least one correct answer.
     if (row.team === "away" && !row.own_goal) {
-      if (!goalsIndex[key]) goalsIndex[key] = [];
+      if (!goalsIndex[key]) {
+        goalsIndex[key] = [];
+        questions.push({ team: row.away_team, context: contextVal, key });
+      }
       goalsIndex[key].push({ player: row.scorer, season: row.season, match_id: id });
     }
   });
 }
 
-function setupGame() {
-  players = [...new Set(goalsData.map(d => d.scorer))];
-  seasons = [...new Set(goalsData.map(d => d.season))].sort();
-  populateSeasonDropdown();
-  buildIndex();
-  newQuestion();
-}
-
+// ─── Mode & display toggles ───────────────────────────────────────────────────
+// Switch between "away team at stadium" and "away team vs home team" question modes.
 function switchMode(mode) {
   gameMode = mode;
   document.getElementById("btnStadium").classList.toggle("active", mode === 'stadium');
   document.getElementById("btnHome").classList.toggle("active", mode === 'home_team');
   document.getElementById("contextLabel").textContent = mode === 'stadium' ? 'Völlur' : 'Heimalið';
+  // Rebuild the index for the new context type, then show a fresh question
   buildIndex();
   newQuestion();
 }
 
+// Switch the results panel between listing all correct answers vs showing the full match.
 function switchDisplay(mode) {
   displayMode = mode;
   document.getElementById("btnAll").classList.toggle("active", mode === 'all');
   document.getElementById("btnGame").classList.toggle("active", mode === 'game');
+  // Re-render immediately if the user has already submitted an answer
   if (answered) showResults();
 }
 
-function showResults() {
-  const key = currentQuestion.key;
-
-  if (displayMode === 'all') {
-    document.getElementById("answersLabel").textContent = "Rétt svör";
-    const entries = goalsIndex[key] || [];
-    document.getElementById("correctAnswers").innerHTML =
-      entries.length > 0
-        ? entries.map(e => `${e.player} (${e.season})`).join("<br>")
-        : '<span style="color:#7a8fa6">Engir heimalið markar</span>';
-  } else {
-    // Find the specific match for the guessed season
-    document.getElementById("answersLabel").textContent = "Leikurinn";
-    const season = String(document.getElementById("seasonSelect").value).trim();
-    const entries = goalsIndex[key] || [];
-    const matchEntry = entries.find(e => String(e.season) === season);
-    const matchId = matchEntry ? matchEntry.match_id : null;
-    const matchRecord = matchId ? matchesData.find(m => m.match_id === matchId) : null;
-
-    if (!matchId || !matchRecord) {
-      document.getElementById("correctAnswers").innerHTML =
-        '<span style="color:#e05050">Leikurinn fannst ekki á völdu tímabili</span>';
-      return;
-    }
-
-    const allGoals = matchGoalsIndex[matchId] || [];
-    const goals = allGoals.map(g => {
-      const tag = g.own_goal ? ' <span style="color:#f0a020">(OG)</span>'
-                : g.team === 'home' ? ' <span style="color:#7a8fa6">(heimalið)</span>'
-                : '';
-      return `${g.scorer}${tag} &mdash; ${g.score_after_goal}`;
-    }).join("<br>");
-    document.getElementById("correctAnswers").innerHTML =
-      `<b style="color:#e0e0e0">Lokaúrslit: ${matchRecord.score}</b><br>${goals}`;
-  }
-}
-
+// ─── Question ─────────────────────────────────────────────────────────────────
 function newQuestion() {
+  // Pick a random away_team + context combo from the validated question pool
   currentQuestion = questions[Math.floor(Math.random() * questions.length)];
   answered = false;
 
@@ -465,18 +457,20 @@ function newQuestion() {
   document.getElementById("stadium").textContent = currentQuestion.context;
   document.getElementById("contextLabel").textContent = gameMode === 'stadium' ? 'Völlur' : 'Heimalið';
 
+  // Clear previous result, input, and answer panel
   const resultEl = document.getElementById("result");
   resultEl.textContent = "";
   resultEl.className = "";
-
   document.getElementById("playerInput").value = "";
   document.getElementById("suggestions").innerHTML = "";
+  document.getElementById("correctAnswers").textContent = "";
 
+  // Show the number of valid (player, season) answer combos as a hint
   const scorers = goalsIndex[currentQuestion.key] || [];
   document.getElementById("numAnswers").textContent = scorers.length;
-  document.getElementById("correctAnswers").textContent = "";
 }
 
+// ─── Answer submission ────────────────────────────────────────────────────────
 function submitAnswer() {
   const player = document.getElementById("playerInput").value.trim();
   const season = document.getElementById("seasonSelect").value;
@@ -484,10 +478,12 @@ function submitAnswer() {
   const normalizedPlayer = player.toLowerCase();
   const normalizedSeason = String(season).trim();
 
+  // Exact match: correct player AND correct season
   const exactMatch = entries.some(e =>
     e.player.toLowerCase() === normalizedPlayer &&
     String(e.season) === normalizedSeason
   );
+  // Partial match: correct player but wrong season
   const playerMatch = entries.some(e =>
     e.player.toLowerCase() === normalizedPlayer
   );
@@ -508,7 +504,56 @@ function submitAnswer() {
   showResults();
 }
 
-// Autocomplete
+// ─── Results display ──────────────────────────────────────────────────────────
+function showResults() {
+  const key = currentQuestion.key;
+
+  if (displayMode === 'all') {
+    // List every valid (player, season) combo for this away_team + context
+    document.getElementById("answersLabel").textContent = "Rétt svör";
+    const entries = goalsIndex[key] || [];
+    document.getElementById("correctAnswers").innerHTML =
+      entries.map(e => `${e.player} (${e.season})`).join("<br>");
+
+  } else {
+    // Show the full goal timeline for the specific match the user guessed.
+    document.getElementById("answersLabel").textContent = "Leikurinn";
+    const season = String(document.getElementById("seasonSelect").value).trim();
+
+    // Find the match record directly from matchesData using team names and season.
+    const awayTeam = currentQuestion.team;
+    const contextVal = currentQuestion.context;
+    const matchRecord = matchesData.find(m =>
+      String(m.season) === season &&
+      m.away_team === awayTeam &&
+      (gameMode === 'stadium' ? m.stadium === contextVal : m.home_team === contextVal)
+    );
+    const matchId = matchRecord ? matchRecord.match_id : null;
+
+    if (!matchId || !matchRecord) {
+      document.getElementById("correctAnswers").innerHTML =
+        '<span style="color:#e05050">Leikurinn fannst ekki á völdu tímabili</span>';
+      return;
+    }
+
+    // Render all goals in the match; tag home goals and own goals for clarity
+    const allGoals = matchGoalsIndex[matchId] || [];
+    const goals = allGoals.map(g => {
+      const tag = g.own_goal
+        ? ' <span style="color:#f0a020">(OG)</span>'
+        : g.team === 'home'
+          ? ' <span style="color:#7a8fa6">(heimalið)</span>'
+          : '';
+      return `${g.scorer}${tag} &mdash; ${g.score_after_goal}`;
+    }).join("<br>");
+
+    document.getElementById("correctAnswers").innerHTML =
+      `<b style="color:#e0e0e0">Lokaúrslit: ${matchRecord.score}</b><br>${goals}`;
+  }
+}
+
+// ─── Autocomplete ─────────────────────────────────────────────────────────────
+// Filters the full player list (all scorers) as the user types.
 const input = document.getElementById("playerInput");
 const suggestions = document.getElementById("suggestions");
 
@@ -532,6 +577,7 @@ input.addEventListener("input", () => {
   });
 });
 
+// Close the autocomplete dropdown when clicking outside the input wrapper
 document.addEventListener("click", e => {
   if (!e.target.closest(".input-wrapper")) suggestions.innerHTML = "";
 });
